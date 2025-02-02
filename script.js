@@ -1,4 +1,4 @@
-const countDownDate = new Date("April 15, 2025 21:00:00 GMT+0600").getTime();
+const countDownDate = new Date("2025-04-15T21:00:00+06:00").getTime(); // Bangladesh Time (GMT+6)
 
 const daysElement = document.getElementById("days");
 const hoursElement = document.getElementById("hours");
