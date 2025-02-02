@@ -3,236 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FairLunar Liquidity Withdrawal</title>
-    <script src="https://cdn.jsdelivr.net/npm/web3/dist/web3.min.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #f0f0f0;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-        }
-
-        .container {
-            max-width: 400px;
-            width: 90%;
-            padding: 20px;
-            background: #1b262c;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        h1 {
-            font-size: 1.8rem;
-            color: #00ffcc;
-            margin-bottom: 10px;
-        }
-
-        #timer {
-            font-size: 1.2rem;
-            color: #ffa500;
-            margin-bottom: 20px;
-        }
-
-        .info {
-            margin: 15px 0;
-            font-size: 1rem;
-            color: #cccccc;
-        }
-
-        button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
-            border: none;
-            border-radius: 5px;
-            background: #00ffcc;
-            color: #1b262c;
-            font-weight: bold;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s ease;
-        }
-
-        button:hover {
-            background: #00e6b8;
-        }
-
-        button:disabled {
-            background: #555;
-            cursor: not-allowed;
-        }
-
-        .balance {
-            font-size: 1.1rem;
-            margin-bottom: 15px;
-            color: #00ffcc;
-        }
-
-        #status {
-            margin-top: 10px;
-            font-size: 0.9rem;
-            color: #f0f0f0;
-        }
-
-        @media (max-width: 480px) {
-            h1 {
-                font-size: 1.5rem;
-            }
-
-            #timer {
-                font-size: 1rem;
-            }
-
-            button {
-                font-size: 14px;
-            }
-        }
-    </style>
+    <title>FairLunar Liquidity Unlock</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <meta name="theme-color" content="#0f172a">
 </head>
 <body>
     <div class="container">
-        <h1>FairLunar Liquidity Withdrawal</h1>
-        <p id="timer">Countdown: Loading...</p>
-        <p class="balance">LP Tokens: <span id="lpBalance">Loading...</span></p>
-        <button id="connectWallet">Connect Wallet</button>
-        <button id="removeLiquidity" disabled>Remove Liquidity</button>
-        <p id="status">Status: Not Connected</p>
+        <h1 class="title">FairLunar Liquidity Unlock In:</h1>
+        <div class="timer-container">
+            <div class="time-box">
+                <span id="days">00</span>
+                <span class="label">Days</span>
+            </div>
+            <div class="time-box">
+                <span id="hours">00</span>
+                <span class="label">Hours</span>
+            </div>
+            <div class="time-box">
+                <span id="minutes">00</span>
+                <span class="label">Minutes</span>
+            </div>
+            <div class="time-box">
+                <span id="seconds">00</span>
+                <span class="label">Seconds</span>
+            </div>
+        </div>
+        <a href="https://dxsale.one/app/pages/deficreatesalev1" target="_blank" class="unlock-button">GO TO UNLOCK PAGE</a>
+        <div class="status-message" id="status"></div>
     </div>
 
-    <script>
-        let web3;
-        let account;
-        let lpBalance = 0;
-
-        const routerAddress = "0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F"; // PancakeSwap V1 Router
-        const lpTokenAddress = "0x7E446EC7BA3Fd5deF25eccb684416331ceaa0B9C"; // LP Token
-        const tokenAddress = "0xDCD289ECF644bEC54393ba6Ce8dB35e9B5Ff75e7"; // Your Token Address
-
-        const routerABI = [
-            {
-                "constant": false,
-                "inputs": [
-                    { "name": "token", "type": "address" },
-                    { "name": "liquidity", "type": "uint256" },
-                    { "name": "amountTokenMin", "type": "uint256" },
-                    { "name": "amountETHMin", "type": "uint256" },
-                    { "name": "to", "type": "address" },
-                    { "name": "deadline", "type": "uint256" }
-                ],
-                "name": "removeLiquidityETH",
-                "outputs": [
-                    { "name": "amountToken", "type": "uint256" },
-                    { "name": "amountETH", "type": "uint256" }
-                ],
-                "payable": false,
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
-        ];
-
-        const lpTokenABI = [
-            {
-                "constant": true,
-                "inputs": [{ "name": "owner", "type": "address" }],
-                "name": "balanceOf",
-                "outputs": [{ "name": "balance", "type": "uint256" }],
-                "payable": false,
-                "stateMutability": "view",
-                "type": "function"
-            }
-        ];
-
-        const connectWallet = async () => {
-            if (typeof window.ethereum !== "undefined") {
-                try {
-                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-                    web3 = new Web3(window.ethereum);
-                    account = accounts[0];
-                    document.getElementById("status").textContent = `Connected: ${account}`;
-                    document.getElementById("connectWallet").disabled = true;
-                    document.getElementById("removeLiquidity").disabled = false;
-                    fetchLPBalance();
-                } catch (error) {
-                    console.error(error);
-                    document.getElementById("status").textContent = "Failed to connect wallet.";
-                }
-            } else {
-                alert("MetaMask not detected. Please install MetaMask.");
-            }
-        };
-
-        const fetchLPBalance = async () => {
-            const lpTokenContract = new web3.eth.Contract(lpTokenABI, lpTokenAddress);
-            lpBalance = await lpTokenContract.methods.balanceOf(account).call();
-            lpBalance = web3.utils.fromWei(lpBalance, "ether");
-            document.getElementById("lpBalance").textContent = lpBalance;
-        };
-
-        const removeLiquidity = async () => {
-            if (lpBalance <= 0) {
-                alert("You have no LP tokens.");
-                return;
-            }
-
-            const lpAmountWei = web3.utils.toWei(lpBalance.toString(), "ether");
-            const deadline = Math.floor(Date.now() / 1000) + 1200;
-            const routerContract = new web3.eth.Contract(routerABI, routerAddress);
-
-            try {
-                document.getElementById("status").textContent = "Removing liquidity...";
-                await routerContract.methods
-                    .removeLiquidityETH(
-                        tokenAddress,
-                        lpAmountWei,
-                        0,
-                        0,
-                        account,
-                        deadline
-                    )
-                    .send({ from: account });
-
-                document.getElementById("status").textContent = "Liquidity removed successfully.";
-                fetchLPBalance();
-            } catch (error) {
-                console.error(error);
-                document.getElementById("status").textContent = "Failed to remove liquidity.";
-            }
-        };
-
-        const startTimer = () => {
-            const endDate = new Date("2025-04-15T15:00:00Z").getTime();
-            const timer = setInterval(() => {
-                const now = new Date().getTime();
-                const distance = endDate - now;
-
-                if (distance < 0) {
-                    clearInterval(timer);
-                    document.getElementById("timer").textContent = "Countdown: Expired";
-                } else {
-                    const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                    document.getElementById("timer").textContent = `Countdown: ${days}d ${hours}h ${minutes}m ${seconds}s`;
-                }
-            }, 1000);
-        };
-
-        document.getElementById("connectWallet").addEventListener("click", connectWallet);
-        document.getElementById("removeLiquidity").addEventListener("click", removeLiquidity);
-
-        window.onload = startTimer;
-    </script>
+    <script src="script.js"></script>
 </body>
 </html>
